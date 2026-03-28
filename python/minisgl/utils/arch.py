@@ -22,8 +22,20 @@ def is_arch_supported(major: int, minor: int = 0) -> bool:
 
 
 def is_sm90_supported() -> bool:
-    return is_arch_supported(9, 0)
+    # Hopper is compute capability 9.x. Do not treat 10.x / 12.x as "SM90+"
+    # or FlashAttention will select Hopper kernels and fail on newer GPUs.
+    arch = _get_torch_cuda_version()
+    if arch is None:
+        return False
+    major, _minor = arch
+    return major == 9
 
 
 def is_sm100_supported() -> bool:
-    return is_arch_supported(10, 0)
+    # TRTLLM / TllmGen FMHA targets NVIDIA "SM100" (compute capability 10.x).
+    # Consumer Blackwell (e.g. RTX 50xx) reports 12.x and must not use trtllm here.
+    arch = _get_torch_cuda_version()
+    if arch is None:
+        return False
+    major, _minor = arch
+    return major == 10
